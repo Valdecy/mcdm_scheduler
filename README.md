@@ -15,5 +15,5 @@ Welcome to **mcdm_scheduler**, a Python library designed to tackle the job shop 
 
 2. Try it in **Colab**:
 
-- Example ( [ Colab Demo ](https://colab.research.google.com/drive/10px7FHlGmcXwshZFzkS7JubpJYwj7J-f?usp=sharing)) ) 
+- Example ( [ Colab Demo ](https://colab.research.google.com/drive/10px7FHlGmcXwshZFzkS7JubpJYwj7J-f?usp=sharing)) 
 
