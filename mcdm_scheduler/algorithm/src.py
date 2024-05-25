@@ -25,7 +25,7 @@ from mcdm_scheduler.util.ht2fs         import ht2fs_weight_calculation
 
 # MCDM Scheduler Class
 class load_mcdm_scheduler():
-    def __init__(self, sequences = [], due_dates = [], setup_time_matrix = [], setup_waste_matrix = [], comparison_matrix = [], crisp_inputs = [], uncertainty_ranges = [], criteria_importance = [], population_size = 5, elite = 1, mutation_rate = 0.1, generations = 100, custom_job_weights = [], custom_objective_weights = [], custom_job_sequence = [], brute_force = False): 
+    def __init__(self, sequences = [], due_dates = [], setup_time_matrix = [], setup_waste_matrix = [], comparison_matrix = [], crisp_inputs = [], uncertainty_ranges = [], criteria_importance = [], population_size = 5, elite = 1, mutation_rate = 0.1, generations = 100, custom_job_weights = [], custom_objective_weights = [], custom_job_sequence = [], brute_force = False, parallel = False): 
       self.job_weights                    = custom_job_weights         # Job Weights: Opitional
       self.objectives_weights             = custom_objective_weights   # Objectives Weights (Makespan, Max WeightedTardiness, Total Waste, Total Setup Time): Opitional
       self.custom_job_sequence            = custom_job_sequence
@@ -42,6 +42,7 @@ class load_mcdm_scheduler():
       self.mutation_rate                  = mutation_rate              # GA
       self.generations                    = generations                # GA
       self.brute_force                    = brute_force
+      self.parallel                       = parallel
       self.machine_sequences, self.matrix = self.sequence_inputs()
       self.num_jobs                       = len(self.sequences)
       self.num_machines                   = self.matrix.shape[1]
@@ -96,7 +97,6 @@ class load_mcdm_scheduler():
             ax.text(-0.5, self.num_machines - i - 0.5, f'Machine {i}', va = 'center', ha = 'right', fontsize = 10)
         ax.set_xlabel('Time')
         ax.set_title('Gantt Chart')
-        #ax.grid(True)
         ax.grid(True, linestyle = '--', alpha = 0.7)
         plt.show()
     
@@ -164,21 +164,40 @@ class load_mcdm_scheduler():
         schedule          = [['' for _ in range(0, total_length)] for _ in range(0, self.num_machines)]
         machine_end_times = [0] * self.num_machines
         job_end_times     = [0] * self.num_jobs
-        for job_id in permutation:
-            operations = self.machine_sequences[job_id]
-            for op_index, machine in enumerate(operations):
-                time_required = self.matrix[job_id, machine]
-                start_time    = job_end_times[job_id]
-                while any(schedule[machine][start_time:start_time + time_required]):
-                    start_time = start_time + 1
-                end_time = start_time + time_required
-                for t in range(start_time, end_time):
-                    schedule[machine][t] = f"j{job_id}"
-                job_end_times[job_id]      = end_time
-                machine_end_times[machine] = end_time
+        if (self.parallel == False):
+            for job_id in permutation:
+                operations = self.machine_sequences[job_id]
+                for op_index, machine in enumerate(operations):
+                    time_required = self.matrix[job_id, machine]
+                    start_time    = job_end_times[job_id]
+                    while any(schedule[machine][start_time:start_time + time_required]):
+                        start_time = start_time + 1
+                    end_time = start_time + time_required
+                    for t in range(start_time, end_time):
+                        schedule[machine][t] = f"j{job_id}"
+                    job_end_times[job_id]      = end_time
+                    machine_end_times[machine] = end_time
+        else:        
+            for job_id in permutation:
+                earliest_start_time = float('inf')
+                best_machine = None
+                
+                for machine, time_required in self.sequences[job_id]:
+                    start_time = machine_end_times[machine]
+                    while any(schedule[machine][start_time:start_time + time_required]):
+                        start_time = start_time + 1
+                    if (start_time < earliest_start_time):
+                        earliest_start_time = start_time
+                        best_machine = machine
+                time_required = self.matrix[job_id, best_machine]
+                end_time = earliest_start_time + time_required
+                for t in range(earliest_start_time, end_time):
+                    schedule[best_machine][t] = f"j{job_id}"
+                machine_end_times[best_machine] = end_time
+                job_end_times[job_id] = end_time
         max_time = max(len(row) for row in schedule)
         for col in range(max_time - 1, -1, -1):
-            if all(row[col] == '' for row in schedule):
+            if (all(row[col] == '' for row in schedule)):
                 for row in schedule:
                     row.pop()
             else:
@@ -186,22 +205,24 @@ class load_mcdm_scheduler():
         return np.array(schedule)
     
     def brute_force_search(self):
-        job_ids                        = list(range(len(self.sequences)))
-        best_sequence                  = None
-        minimal_objective_value        = float('inf')
+        job_ids                 = list(range(len(self.sequences)))
+        best_sequence           = None
+        minimal_objective_value = float('inf')
         for permutation in itertools.permutations(job_ids):
-            schedule_matrix        = self.schedule_jobs(permutation)
-            makespan               = self.calculate_makespan(schedule_matrix)
-            max_weighted_tardiness = self.calculate_max_weighted_tardiness(schedule_matrix)
-            total_waste            = self.calculate_total_waste(permutation)
-            total_setup_time       = self.calculate_total_setup_time(permutation)
-            objective_value        = (
-                                        self.objectives_weights[0] * makespan +
-                                        self.objectives_weights[1] * max_weighted_tardiness +
-                                        self.objectives_weights[2] * total_waste +
-                                        self.objectives_weights[3] * total_setup_time
-                                      ) / 1.0
-            print(permutation, makespan, max_weighted_tardiness, total_waste, total_setup_time, objective_value )
+            schedule_matrix = self.schedule_jobs(permutation)
+            objective_value = 0.0 / 1.0
+            if (self.objectives_weights[0] != 0):
+                makespan               = self.calculate_makespan(schedule_matrix)
+                objective_value        = objective_value + self.objectives_weights[0] * makespan
+            if (self.objectives_weights[1] != 0):
+                max_weighted_tardiness = self.calculate_max_weighted_tardiness(schedule_matrix)
+                objective_value        = objective_value + self.objectives_weights[1] * max_weighted_tardiness
+            if (self.objectives_weights[2] != 0):
+                total_waste            = self.calculate_total_waste(permutation)
+                objective_value        = objective_value + self.objectives_weights[2] * total_waste
+            if (self.objectives_weights[3] != 0):
+                total_setup_time       = self.calculate_total_setup_time(permutation)
+                objective_value        = objective_value + self.objectives_weights[3] * total_setup_time
             if (objective_value < minimal_objective_value):
                 minimal_objective_value = objective_value
                 best_sequence           = permutation
@@ -209,17 +230,20 @@ class load_mcdm_scheduler():
         return best_sequence, minimal_objective_value
     
     def target_function(self, permutation): 
-        schedule_matrix           = self.schedule_jobs(permutation)
-        makespan                  = self.calculate_makespan(schedule_matrix)
-        max_weighted_tardiness    = self.calculate_max_weighted_tardiness(schedule_matrix)
-        total_waste               = self.calculate_total_waste(permutation)
-        total_setup_time          = self.calculate_total_setup_time(permutation)
-        objective_value           = (
-                                      self.objectives_weights[0] * makespan +
-                                      self.objectives_weights[1] * max_weighted_tardiness +
-                                      self.objectives_weights[2] * total_waste +
-                                      self.objectives_weights[3] * total_setup_time
-                                    ) / 1.0
+        schedule_matrix = self.schedule_jobs(permutation)
+        objective_value = 0.0 / 1.0
+        if (self.objectives_weights[0] != 0):
+            makespan               = self.calculate_makespan(schedule_matrix)
+            objective_value        = objective_value + self.objectives_weights[0] * makespan
+        if (self.objectives_weights[1] != 0):
+            max_weighted_tardiness = self.calculate_max_weighted_tardiness(schedule_matrix)
+            objective_value        = objective_value + self.objectives_weights[1] * max_weighted_tardiness
+        if (self.objectives_weights[2] != 0):
+            total_waste            = self.calculate_total_waste(permutation)
+            objective_value        = objective_value + self.objectives_weights[2] * total_waste
+        if (self.objectives_weights[3] != 0):
+            total_setup_time       = self.calculate_total_setup_time(permutation)
+            objective_value        = objective_value + self.objectives_weights[3] * total_setup_time
         return objective_value
     
     def run_mcdm_scheduler(self):
@@ -234,8 +258,8 @@ class load_mcdm_scheduler():
                     g_mean = weights[i]
                 else:
                     g_mean = [g_mean[j]*weights[i][j] for j in range(0, len(weights[i]))]
-                i                 = i + 1
-            g_mean                  = [g_mean[j]**(1/len(weights)) for j in range(0, len(g_mean))]   
+                i = i + 1
+            g_mean = [g_mean[j]**(1/len(weights)) for j in range(0, len(g_mean))]   
             self.objectives_weights = g_mean
         if (len(self.job_weights) == 0):
             for k in range(0, len(self.crisp_inputs)):
