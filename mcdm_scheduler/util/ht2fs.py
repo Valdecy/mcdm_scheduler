@@ -6,7 +6,7 @@ import numpy as np
 ###############################################################################
 
 # Function: HT2FS
-def ht2fs_weight_calculation(crisp_inputs, uncertainty_ranges, criteria_importance):
+def ht2fs_weight_calculation(crisp_inputs, uncertainty_ranges):
     
     ################################################
     def fuzzify_input(crisp_value, uncertainty_range):
@@ -18,8 +18,8 @@ def ht2fs_weight_calculation(crisp_inputs, uncertainty_ranges, criteria_importan
         f = crisp_value + 2 * uncertainty_range
         return (a, b, c, d, e, f)
 
-    def construct_fuzzy_decision_matrix(fuzzy_inputs, criteria_importance):
-        n            = len(criteria_importance)
+    def construct_fuzzy_decision_matrix(fuzzy_inputs, crisp_inputs):
+        n            = len(crisp_inputs)
         fuzzy_matrix = np.zeros((n, n), dtype = object)
         for i in range(n):
             for j in range(n):
@@ -50,7 +50,7 @@ def ht2fs_weight_calculation(crisp_inputs, uncertainty_ranges, criteria_importan
     ################################################
     
     fuzzy_inputs          = [fuzzify_input(crisp, uncertainty) for crisp, uncertainty in zip(crisp_inputs, uncertainty_ranges)]
-    fuzzy_decision_matrix = construct_fuzzy_decision_matrix(fuzzy_inputs, criteria_importance)
+    fuzzy_decision_matrix = construct_fuzzy_decision_matrix(fuzzy_inputs, crisp_inputs)
     composite_weights     = apply_fuzzy_arithmetic(fuzzy_decision_matrix)
     crisp_weights         = [defuzzify_value(fuzzy) for fuzzy in composite_weights]
     return crisp_weights
