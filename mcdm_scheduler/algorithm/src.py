@@ -26,7 +26,7 @@ from mcdm_scheduler.util.ht2fs         import ht2fs_weight_calculation
 
 # MCDM Scheduler Class
 class load_mcdm_scheduler():
-    def __init__(self, sequences = [], due_dates = [], setup_time_matrix = [], setup_waste_matrix = [], comparison_matrix = [], crisp_inputs = [], uncertainty_ranges = [], criteria_importance = [], population_size = 5, elite = 1, mutation_rate = 0.1, generations = 100, custom_job_weights = [], custom_objective_weights = [], custom_sequence = [], z_permutations = 100, brute_force = False, parallel = False): 
+    def __init__(self, sequences = [], due_dates = [], setup_time_matrix = [], setup_waste_matrix = [], comparison_matrix = [], crisp_inputs = [], uncertainty_ranges = [], population_size = 5, elite = 1, mutation_rate = 0.1, generations = 100, custom_job_weights = [], custom_objective_weights = [], custom_sequence = [], z_permutations = 100, brute_force = False, parallel = False): 
       self.z_std                          = []
       self.z_permutations                 = z_permutations
       self.job_weights                    = custom_job_weights         # Job Weights: Opitional
@@ -39,7 +39,6 @@ class load_mcdm_scheduler():
       self.comparison_matrix              = comparison_matrix          # PPF-AHP             Input: Only Relevant if custom_objectives_weights = []
       self.crisp_inputs                   = crisp_inputs               # HT2FS               Input: Only Relevant if custom_job_weights        = []
       self.uncertainty_ranges             = uncertainty_ranges         # HT2FS               Input: Only Relevant if custom_job_weights        = []
-      self.criteria_importance            = criteria_importance        # HT2FS               Input: Only Relevant if custom_job_weights        = []
       self.population_size                = population_size            # GA
       self.elite                          = int(elite)                 # GA
       self.mutation_rate                  = mutation_rate              # GA
@@ -340,7 +339,7 @@ class load_mcdm_scheduler():
             self.objectives_weights = g_mean
         if (len(self.job_weights) == 0):
             for k in range(0, len(self.crisp_inputs)):
-                job_weights = ht2fs_weight_calculation(self.crisp_inputs[k], self.uncertainty_ranges[k], self.criteria_importance[k])
+                job_weights = ht2fs_weight_calculation(self.crisp_inputs[k], self.uncertainty_ranges[k])
                 if (len(self.job_weights) == 0):
                     self.job_weights = job_weights
                 else:
