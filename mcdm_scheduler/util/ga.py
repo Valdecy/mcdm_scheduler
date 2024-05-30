@@ -168,7 +168,7 @@ def genetic_algorithm(jobs, population_size, elite, mutation_rate, generations, 
     count            = 0
     while (count <= generations): 
         if (verbose == True):
-            print('Generation: ', count, '; Objective Function: ', round(elite_ind[1], 2))
+            print('Generation: ', count)
         offspring        = breeding(population, fitness, elite, target_function)  
         offspring        = mutation(offspring, mutation_rate, elite, target_function)
         cost             = [item[1] for item in offspring]
