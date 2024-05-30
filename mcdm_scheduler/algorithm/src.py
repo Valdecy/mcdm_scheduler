@@ -352,7 +352,7 @@ class load_mcdm_scheduler():
         if (self.brute_force == False and len(self.custom_sequence) == 0):
             job_sequence, obj_fun = genetic_algorithm(self.num_jobs, self.population_size, self.elite, self.mutation_rate, self.generations, self.target_function, True)
             schedule_matrix       = self.schedule_jobs(job_sequence) 
-        if (self.brute_force == True and len(self.custom_job_sequence) == 0):
+        if (self.brute_force == True and len(self.custom_sequence) == 0):
             job_sequence, obj_fun = self.brute_force_search()
             schedule_matrix       = self.schedule_jobs(job_sequence)
         if (len(self.custom_sequence) != 0):
