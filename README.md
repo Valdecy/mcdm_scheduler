@@ -4,6 +4,10 @@
 
 Welcome to **mcdm_scheduler**, a Python library designed to tackle the job shop scheduling problems. This library incorporates advanced methodologies to manage the complexities and uncertainties prevalent in manufacturing processes.
 
+##  Citation
+
+Yigit F.; Basilio M.P; Pereira V. (2024). A Hybrid Approach for the Multi-Criteria-Based Optimization of Sequence-Dependent Setup-Based Flow Shop Scheduling. Mathematics. 12(13):2007. doi: https://doi.org/10.3390/math12132007
+
 ##  Key Features
 
 - Objectives Weight Assessment: Utilizes the Pairwise Prioritized Fuzzy Analytical Hierarchy Process (PPF-AHP) to determine the weights of critical objectives such as Makespan, Weighted Tardiness, Total Waste, and Total Setup Time. This method accommodates input from one or multiple decision makers.
